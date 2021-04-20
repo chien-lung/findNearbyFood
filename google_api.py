@@ -75,20 +75,20 @@ def parse_find_place_requests(res_json):
     places_info = res_json["candidates"]
     new_infos = []
     for place_info in places_info:
-        name = place_info["name"]
         place_id = place_info["place_id"]
+        name = place_info["name"]
         addr = place_info["formatted_address"]
         latitude = place_info["geometry"]["location"]["lat"]
         longitude = place_info["geometry"]["location"]["lng"]
-        new_infos.append([name, place_id, addr, latitude, longitude])
+        new_infos.append([place_id, name, addr, latitude, longitude])
     return new_infos
 
 def parse_nearby_search_requests(res_json, query_place_id, food_style="null", food_type="null"):
     restaurants_info = res_json["results"]
     new_infos = []
     for restaurant_info in restaurants_info:
-        name = restaurant_info["name"]
         place_id = restaurant_info["place_id"]
+        name = restaurant_info["name"]
         try:
             addr = restaurant_info["vicinity"]
         except: # for parse_text_search_requests
@@ -101,7 +101,7 @@ def parse_nearby_search_requests(res_json, query_place_id, food_style="null", fo
             price_level = "null"
         rating = restaurant_info["rating"]
         user_ratings_total = restaurant_info["user_ratings_total"]
-        new_infos.append([name, place_id, addr, latitude, longitude, price_level, rating, user_ratings_total, query_place_id, food_style, food_type])
+        new_infos.append([place_id, name, addr, latitude, longitude, price_level, rating, user_ratings_total, query_place_id, food_style, food_type])
     return new_infos
 
 def parse_text_search_requests(res_json, query_place_id, food_style="null", food_type="null"):

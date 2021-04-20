@@ -23,20 +23,19 @@ def create_table(conn, task):
     if(task == PLACES):
         query = f'''
             CREATE TABLE IF NOT EXISTS {task} (
-                "id"    INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+                "place_id"  TEXT NOT NULL UNIQUE,
                 "name"  TEXT NOT NULL,
-                "place_id"  TEXT NOT NULL,
                 "address"   TEXT NOT NULL,
                 "latitude"  TEXT NOT NULL,
-                "longitude" TEXT NOT NULL
+                "longitude" TEXT NOT NULL,
+                PRIMARY KEY("place_id")
             );
         '''
     elif(task == RESTAURANTS):
         query = f'''
             CREATE TABLE IF NOT EXISTS {task} (
-                "id"    INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+                "place_id"  TEXT NOT NULL UNIQUE,
                 "name"  TEXT NOT NULL,
-                "place_id"  TEXT NOT NULL,
                 "address"   TEXT NOT NULL,
                 "latitude"  TEXT NOT NULL,
                 "longitude" TEXT NOT NULL,
@@ -45,7 +44,8 @@ def create_table(conn, task):
                 "user_ratings_total"    TEXT NOT NULL,
                 "query_place_id"    TEXT NOT NULL,
                 "food_style"   TEXT,
-                "food_type" TEXT
+                "food_type" TEXT,
+                PRIMARY KEY("place_id")
             );
         '''
     elif(task == DETAILS):
@@ -58,17 +58,17 @@ def create_table(conn, task):
     cur.execute(query)
     conn.commit()
 
-def insert_new_info(conn, task, new_info):
+def insert_info(conn, task, info):
     query = None
     if(task == PLACES):
         query = f'''
             INSERT INTO {task}
-            VALUES (NULL, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
         '''
     elif(task == RESTAURANTS):
         query = f'''
             INSERT INTO {task}
-            VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         '''
     elif(task == DETAILS):
         pass
@@ -77,11 +77,14 @@ def insert_new_info(conn, task, new_info):
 
     assert query is not None    
     cur = conn.cursor()
-    cur.execute(query, new_info)
+    cur.execute(query, info)
     print(f"Insert new value into table \"{task}\"")
     conn.commit()
 
-def update_new_info(conn, task, new_info, old_info):
+def update_info(conn, task, new_info, old_info):
+    ########
+    # TODO #
+    ########
     query = None
     if(task == PLACES):
         pass
@@ -130,11 +133,11 @@ def get_db_data(conn, task, info=None, keyword=None, food_style=None, food_type=
             pass
     elif(task == PLACES):
         query = f'''
-            SELECT * FROM {task} WHERE place_id="{info[1]}"
+            SELECT * FROM {task} WHERE place_id="{info[0]}"
         '''
     elif(task == RESTAURANTS):
         query = f'''
-            SELECT * FROM {task} WHERE place_id="{info[1]}"
+            SELECT * FROM {task} WHERE place_id="{info[0]}"
         '''
     elif(task == DETAILS):
         pass
@@ -150,8 +153,6 @@ def get_db_data(conn, task, info=None, keyword=None, food_style=None, food_type=
 if __name__ == "__main__":
     conn = create_connection()
 
-    # place_info = ['Taoyuan City', 'ChIJP4bazg49aDQRakg6WFJP5FQ', 'Taoyuan City, Taiwan', '24.9936281', '121.3009798']
-    place_info = ["Detroit", "ChIJdR3LEAHKJIgR0sS5NU6Gdlc", "Detroit, MI, USA", "42.331427", "-83.0457538"]
-
+    place_info = ["ChIJdR3LEAHKJIgR0sS5NU6Gdlc", "Detroit", "Detroit, MI, USA", "42.331427", "-83.0457538"]
 
     close_connection(conn)
