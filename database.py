@@ -8,6 +8,31 @@ PLACES = "places"
 RESTAURANTS = "restaurants"
 DETAILS = "details"
 
+ATTRIBUTES = {
+    PLACES:{
+        "place_id": 0,
+        "name": 1,
+        "address": 2,
+        "latitude": 3,
+        "longitude": 4
+    },
+    RESTAURANTS:{
+        "place_id": 0,
+        "name": 1,
+        "address": 2,
+        "latitude": 3,
+        "longitude": 4,
+        "price_level": 5,
+        "rating": 6,
+        "user_ratings_total": 7,
+        "query_place_id": 8,
+        "food_style": 9,
+        "food_type": 10,
+    },
+    DETAILS:{
+    }
+}
+
 ####################
 # Process Database #
 ####################
@@ -81,25 +106,47 @@ def insert_info(conn, task, info):
     print(f"Insert new value into table \"{task}\"")
     conn.commit()
 
+def need_update(task, new_info, old_info):
+    ########
+    # TODO #
+    ########
+    if(task == PLACES):
+        pass
+    elif(task == RESTAURANTS):
+        food_style_idx = ATTRIBUTES[task]["food_style"]
+        food_type_idx = ATTRIBUTES[task]["food_type"]
+        food_style_needs_update = old_info[food_style_idx] == "null" and new_info[food_style_idx] != "null"
+        food_type_needs_update = old_info[food_type_idx] == "null" and new_info[food_type_idx] != "null"
+        return food_style_needs_update or food_type_needs_update
+    elif(task == DETAILS):
+        pass
+    return False
+
 def update_info(conn, task, new_info, old_info):
     ########
     # TODO #
     ########
+    if(not need_update(task, new_info, old_info)):
+        return old_info
+
     query = None
     if(task == PLACES):
         pass
     elif(task == RESTAURANTS):
+        food_style_idx = ATTRIBUTES[task]["food_style"]
+        food_type_idx = ATTRIBUTES[task]["food_type"]
+        place_id_idx = ATTRIBUTES[task]["place_id"]
         condition_str = ""
-        if(new_info[-2] != "null" and old_info[-2] == "null"):
-            condition_str = f"food_style=\"{new_info[-2]}\""
-            old_info[-2] = new_info[-2]
-        elif(new_info[-1] != "null" and old_info[-1] == "null"):
-            condition_str = f"food_type=\"{new_info[-1]}\""
-            old_info[-1] = new_info[-1]
+        if(new_info[food_style_idx] != "null" and old_info[food_style_idx] == "null"):
+            condition_str = f"food_style=\"{new_info[food_style_idx]}\""
+            old_info[food_style_idx] = new_info[food_style_idx]
+        elif(new_info[food_type_idx] != "null" and old_info[food_type_idx] == "null"):
+            condition_str = f"food_type=\"{new_info[food_type_idx]}\""
+            old_info[food_type_idx] = new_info[food_type_idx]
         query = f'''
             UPDATE {task}
             SET {condition_str}
-            WHERE place_id="{old_info[1]}"
+            WHERE place_id="{old_info[place_id_idx]}"
         '''
     elif(task == DETAILS):
         pass
@@ -109,12 +156,13 @@ def update_info(conn, task, new_info, old_info):
     assert query is not None    
     cur = conn.cursor()
     cur.execute(query)
-    print(f"Update new value into table \"{task}\"")
     conn.commit()
+    print(f"Update new value into table \"{task}\"")
     return old_info
 
 def get_db_data(conn, task, info=None, keyword=None, food_style=None, food_type=None):
     query = None
+    # Specify keyword to search
     if(keyword is not None):
         if(task == PLACES):
             query = f'''
@@ -131,6 +179,7 @@ def get_db_data(conn, task, info=None, keyword=None, food_style=None, food_type=
             '''
         elif(task == DETAILS):
             pass
+    # Search by place_id
     elif(task == PLACES):
         query = f'''
             SELECT * FROM {task} WHERE place_id="{info[0]}"
