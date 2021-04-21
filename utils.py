@@ -5,33 +5,49 @@ import json
 from google_api import *
 from database import *
 
+###################
+# Processing info #
+###################
+def process_db_data(list_of_data, single_info=False):
+    # [(a1, b1x, ...), (a2, b2, ...), ...] -> [[a1, b1x, ...], [a2, b2, ...], ...]
+    return [list(data) for data in list_of_data]
+
+def generate_keyword_dict(*args):
+    assert len(args)%2 == 0
+    keyword_dict = {}
+    for i in range(len(args)//2):
+        keyword_dict[args[2*i]] = args[2*i+1]
+    return keyword_dict
+
 ##############################
 # Get info by DB or requests #
 ##############################
-def get_place_info(conn, place):
+def get_processed_db_data(conn, task, *args):
+    keyword_dict = generate_keyword_dict(*args)
+    infos = get_db_data(conn, task, keyword_dict)
+    infos = process_db_data(infos)
+    return infos
+
+def get_place_info(conn, place_name):
     task = PLACES
     # Create table of task if not exists
     create_table(conn, task)
     # Check place exits in table or not
-    place_info = get_db_data(conn, task, keyword=place)
-    if(len(place_info) == 0):
+    places_info = get_processed_db_data(conn, task, "name", place_name)
+    if(len(places_info) == 0):
         # Request place info and Parse place json to info infos
-        res_json = find_place_requests(place)
+        res_json = find_place_requests(place_name)
         new_infos = parse_find_place_requests(res_json)
         # Choose one place (Actually, there exists only one place)
         new_info = new_infos[0]
-        place_info = get_db_data(conn, task, new_info)
-        if(len(place_info) == 0):
+        places_info = get_processed_db_data(conn, task, "place_id", new_info[ATTRIBUTES[task]["place_id"]])
+        if(len(places_info) == 0):
             # Insert one new row in to table
             insert_info(conn, task, new_info)
-            place_info = new_info
-        else:
-            place_info = list(place_info[0]) # [(a, b,...)] -> [a, b, ...]
-    else:
-        place_info = list(place_info[0]) # [(a, b,...)] -> [a, b, ...]
+            places_info = new_infos
 
-    # place_info = [place_id, name, address, latitude, longitude]
-    return place_info
+    # places_info = [[place_id, name, address, latitude, longitude]]
+    return places_info[0]
 
 def get_nearby_restaurants_info(conn, place_info):
     query_place_id = place_info[ATTRIBUTES[PLACES]["place_id"]]
@@ -40,36 +56,36 @@ def get_nearby_restaurants_info(conn, place_info):
     task = RESTAURANTS
 
     create_table(conn, task)
-    restaurants_info = get_db_data(conn, task, keyword=query_place_id)
+    restaurants_info = get_processed_db_data(conn, task, "query_place_id", query_place_id)
     if(len(restaurants_info) < 5):
         restaurants_info = []
         res_json = nearby_search_requests(lat_place, lng_place)
         new_infos = parse_nearby_search_requests(res_json, query_place_id)
         for new_info in new_infos:
             # Get info of each restaurant from DB
-            restaurant_info = get_db_data(conn, task, new_info)
+            restaurant_info = get_processed_db_data(conn, task, "place_id", new_info[ATTRIBUTES[task]["place_id"]])
             if(len(restaurant_info) == 0):
                 insert_info(conn, task, new_info)
                 restaurants_info.append(new_info)
             else:
-                restaurants_info.append(list(restaurant_info[0]))
-    else:
-        restaurants_info = [list(restaurant_info) for restaurant_info in restaurants_info]
+                restaurants_info.append(restaurant_info[0])
 
     # restaurants_info = [[place_id, name, addr, latitude, longitude, price_level, 
     #                      rating, user_ratings_total, query_place_id, food_style, food_type], [...], ...]
     return restaurants_info
 
 def get_nearby_specified_restaurants_info(conn, place_info, food_style=None, food_type=None):
-    assert (food_type is not None) ^ (food_style is not None)
+    assert (food_style is not None) ^ (food_type is not None)
     query_place_id = place_info[ATTRIBUTES[PLACES]["place_id"]]
     lat_place = place_info[ATTRIBUTES[PLACES]["latitude"]]
     lng_place = place_info[ATTRIBUTES[PLACES]["longitude"]]
     task = RESTAURANTS
 
     create_table(conn, task)
-    restaurants_info = get_db_data(conn, task, keyword=query_place_id, food_style=food_style, food_type=food_type)
-    print(len(restaurants_info))
+    if food_style is not None:
+        restaurants_info = get_processed_db_data(conn, task, "query_place_id", query_place_id, "food_style", food_style)
+    else:
+        restaurants_info = get_processed_db_data(conn, task, "query_place_id", query_place_id, "food_type", food_type)
     if(len(restaurants_info) < 5):
         restaurants_info = []
         # Request and parse json to lists of restaurants info 
@@ -81,16 +97,13 @@ def get_nearby_specified_restaurants_info(conn, place_info, food_style=None, foo
             new_infos = parse_text_search_requests(res_json, query_place_id, food_style=food_style)
         # For each info, get data from db
         for new_info in new_infos:
-            restaurant_info = get_db_data(conn, task, new_info)
+            restaurant_info = get_processed_db_data(conn, task, "place_id", new_info[ATTRIBUTES[task]["place_id"]])
             if(len(restaurant_info) == 0):
                 insert_info(conn, task, new_info)
                 restaurants_info.append(new_info)
             else:
-                restaurant_info = list(restaurant_info[0])
-                restaurant_info = update_info(conn, task, new_info, restaurant_info)
+                restaurant_info = update_info(conn, task, new_info, restaurant_info[0])
                 restaurants_info.append(restaurant_info)
-    else:
-        restaurants_info = [list(restaurant_info) for restaurant_info in restaurants_info]
 
     # restaurants_info = [[place_id, name, addr, latitude, longitude, price_level, 
     #                      rating, user_ratings_total, query_place_id, food_style, food_type], [...], ...]
@@ -108,6 +121,7 @@ def get_all_specified_restaurants_info(conn, place_info):
         restaurants_info.extend(restaurants_info_this)
     return restaurants_info
 
-###################
-# Processing info #
-###################
+def get_top_k_restaurant_type(conn, restaurant_type="food_style", sort_key="rating", k=5):
+    results = retrieve_top_k_restaurant_type(conn, restaurant_type, sort_key, k)
+    results = process_db_data(results)
+    return results

@@ -160,48 +160,37 @@ def update_info(conn, task, new_info, old_info):
     print(f"Update new value into table \"{task}\"")
     return old_info
 
-def get_db_data(conn, task, info=None, keyword=None, food_style=None, food_type=None):
-    query = None
-    # Specify keyword to search
-    if(keyword is not None):
-        if(task == PLACES):
-            query = f'''
-                SELECT * FROM {task} WHERE name="{keyword}"
-            '''
-        elif(task == RESTAURANTS):
-            condition_str = ""
-            if(food_style is not None):
-                condition_str += f" AND food_style=\"{food_style}\""
-            if(food_type is not None):
-                condition_str += f" AND food_type=\"{food_type}\""
-            query = f'''
-                SELECT * FROM {task} WHERE query_place_id="{keyword}"{condition_str}
-            '''
-        elif(task == DETAILS):
-            pass
-    # Search by place_id
-    elif(task == PLACES):
-        query = f'''
-            SELECT * FROM {task} WHERE place_id="{info[0]}"
-        '''
-    elif(task == RESTAURANTS):
-        query = f'''
-            SELECT * FROM {task} WHERE place_id="{info[0]}"
-        '''
-    elif(task == DETAILS):
-        pass
-    else:
-        print("Wrong Task")
-    
-    assert query is not None    
-    cur = conn.cursor()
-    result = cur.execute(query).fetchall()
-    return result
+def get_db_data(conn, task, keyword_dict=None):
+    keys = list(keyword_dict.keys())
+    values = [keyword_dict[key] for key in keys]
 
+    condition_str = f"{keys[0]}=\"{values[0]}\""
+    for i in range(1, len(keys)):
+        condition_str += f" AND {keys[i]}=\"{values[i]}\""
+    query = f'''
+        SELECT * FROM {task}
+        WHERE {condition_str}
+    '''   
+    cur = conn.cursor()
+    results = cur.execute(query).fetchall()
+    return results
+
+def retrieve_top_k_restaurant_type(conn, restaurant_type, sort_key, k):
+    query = f'''
+            SELECT {restaurant_type}, AVG(rating), AVG(user_ratings_total), COUNT({restaurant_type}) FROM restaurants
+            WHERE {restaurant_type}<>"null" AND user_ratings_total<>"0"
+            GROUP BY {restaurant_type}
+            ORDER BY AVG({sort_key}) DESC
+            LIMIT {k};
+        '''
+    cur = conn.cursor()
+    results = cur.execute(query).fetchall()  
+    return results
 
 if __name__ == "__main__":
     conn = create_connection()
 
-    place_info = ["ChIJdR3LEAHKJIgR0sS5NU6Gdlc", "Detroit", "Detroit, MI, USA", "42.331427", "-83.0457538"]
-
+    # place_info = ["ChIJdR3LEAHKJIgR0sS5NU6Gdlc", "Detroit", "Detroit, MI, USA", "42.331427", "-83.0457538"]
+    result = retrieve_top_k_restaurant_type(conn, "food_style", "rating", 5)
+    print(result)
     close_connection(conn)
