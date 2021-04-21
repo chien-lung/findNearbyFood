@@ -160,13 +160,23 @@ def update_info(conn, task, new_info, old_info):
     print(f"Update new value into table \"{task}\"")
     return old_info
 
-def get_db_data(conn, task, keyword_dict=None):
+def generate_condition_str(keyword_dict):
     keys = list(keyword_dict.keys())
     values = [keyword_dict[key] for key in keys]
+    
+    condition_strs = []
+    for i in range(len(keys)):
+        if type(values[i]) is list:
+            c_str = f"{keys[i]} in "
+            c_str += "(\"" + "\",\"".join(values[i]) + "\")"
+        else:
+            c_str = f"{keys[i]}=\"{values[i]}\""
+        condition_strs.append(c_str)
+    condition_str = ' AND '.join(condition_strs)
+    return condition_str
 
-    condition_str = f"{keys[0]}=\"{values[0]}\""
-    for i in range(1, len(keys)):
-        condition_str += f" AND {keys[i]}=\"{values[i]}\""
+def retrieve_db_data(conn, task, keyword_dict):
+    condition_str = generate_condition_str(keyword_dict)
     query = f'''
         SELECT * FROM {task}
         WHERE {condition_str}
@@ -175,14 +185,31 @@ def get_db_data(conn, task, keyword_dict=None):
     results = cur.execute(query).fetchall()
     return results
 
-def retrieve_top_k_restaurant_type(conn, restaurant_type, sort_key, k):
+def retrieve_top_k_restaurant_types(conn, style_or_type, sort_key, k):
     query = f'''
-            SELECT {restaurant_type}, AVG(rating), AVG(user_ratings_total), COUNT({restaurant_type}) FROM restaurants
-            WHERE {restaurant_type}<>"null" AND user_ratings_total<>"0"
-            GROUP BY {restaurant_type}
-            ORDER BY AVG({sort_key}) DESC
-            LIMIT {k};
-        '''
+        SELECT {style_or_type}, AVG(rating), AVG(user_ratings_total), COUNT({style_or_type}) FROM restaurants
+        WHERE {style_or_type}<>"null" AND user_ratings_total<>"0"
+        GROUP BY {style_or_type}
+        ORDER BY AVG({sort_key}) DESC
+        LIMIT {k};
+    '''
+    cur = conn.cursor()
+    results = cur.execute(query).fetchall()  
+    return results
+
+def retrieve_top_k_restaurants(conn, style_or_type, restaurant_type, sort_key, k, keyword_dict=None):
+    if keyword_dict is None:
+        condition_str = f"{style_or_type}=\"{restaurant_type}\" COLLATE NOCASE"
+    else:
+        condition_str = generate_condition_str(keyword_dict)
+    
+    query = f'''
+        SELECT name, address, price_level, rating, user_ratings_total, food_style, food_type FROM restaurants
+        WHERE {condition_str}
+        ORDER BY {sort_key}
+        DESC
+        LIMIT {k};
+    '''
     cur = conn.cursor()
     results = cur.execute(query).fetchall()  
     return results
@@ -191,6 +218,6 @@ if __name__ == "__main__":
     conn = create_connection()
 
     # place_info = ["ChIJdR3LEAHKJIgR0sS5NU6Gdlc", "Detroit", "Detroit, MI, USA", "42.331427", "-83.0457538"]
-    result = retrieve_top_k_restaurant_type(conn, "food_style", "rating", 5)
+    result = retrieve_top_k_restaurant_types(conn, "food_style", "rating", 5)
     print(result)
     close_connection(conn)

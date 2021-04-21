@@ -104,7 +104,11 @@ def parse_nearby_search_requests(res_json, query_place_id, food_style="null", fo
         new_infos.append([place_id, name, addr, latitude, longitude, price_level, rating, user_ratings_total, query_place_id, food_style, food_type])
     return new_infos
 
-def parse_text_search_requests(res_json, query_place_id, food_style="null", food_type="null"):
+def parse_text_search_requests(res_json, query_place_id, food_style, food_type):
+    if not food_style:
+        food_style = "null"
+    if not food_type:
+        food_type = "null"
     return parse_nearby_search_requests(res_json, query_place_id, food_style, food_type)
 
 if __name__ == "__main__":
