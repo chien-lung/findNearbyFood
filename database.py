@@ -74,7 +74,30 @@ def create_table(conn, task):
             );
         '''
     elif(task == DETAILS):
-        pass
+        query = f'''
+            CREATE TABLE IF NOT EXISTS {task} (
+                "place_id"  TEXT NOT NULL UNIQUE,
+                "name"  TEXT NOT NULL,
+                "phone" TEXT NOT NULL,
+                "open_hours" TEXT,
+                "reviewer1" TEXT,
+                "reviewer1_rating" TEXT,
+                "reviewer1_text" TEXT,
+                "reviewer2" TEXT,
+                "reviewer2_rating" TEXT,
+                "reviewer2_text" TEXT,
+                "reviewer3" TEXT,
+                "reviewer3_rating" TEXT,
+                "reviewer3_text" TEXT,
+                "reviewer4" TEXT,
+                "reviewer4_rating" TEXT,
+                "reviewer4_text" TEXT,
+                "reviewer5" TEXT,
+                "reviewer5_rating" TEXT,
+                "reviewer5_text" TEXT,
+                PRIMARY KEY("place_id")
+            );
+        '''
     else:
         print("Wrong Task")
 
@@ -86,20 +109,18 @@ def create_table(conn, task):
 def insert_info(conn, task, info):
     query = None
     if(task == PLACES):
-        query = f'''
-            INSERT INTO {task}
-            VALUES (?, ?, ?, ?, ?)
-        '''
+        values = ",".join("?"*5)
     elif(task == RESTAURANTS):
-        query = f'''
-            INSERT INTO {task}
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        '''
+        values = ",".join("?"*11)
     elif(task == DETAILS):
-        pass
+        values = ",".join("?"*19)
     else:
         print("Wrong Task")
 
+    query = f'''
+            INSERT INTO {task}
+            VALUES ({values})
+        '''
     assert query is not None    
     cur = conn.cursor()
     cur.execute(query, info)
@@ -204,7 +225,7 @@ def retrieve_top_k_restaurants(conn, style_or_type, restaurant_type, sort_key, k
         condition_str = generate_condition_str(keyword_dict)
     
     query = f'''
-        SELECT name, address, price_level, rating, user_ratings_total, food_style, food_type FROM restaurants
+        SELECT place_id, name, address, price_level, rating, user_ratings_total, food_style, food_type FROM restaurants
         WHERE {condition_str}
         ORDER BY {sort_key}
         DESC

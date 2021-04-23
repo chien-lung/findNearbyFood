@@ -28,6 +28,16 @@ def get_processed_db_data(conn, task, *args):
     infos = process_db_data(infos)
     return infos
 
+def get_restaurants_detailed_info(conn, place_id):
+    task = DETAILS
+    create_table(conn, task)
+    detailed_info = get_processed_db_data(conn, task, "place_id", place_id)
+    if(len(detailed_info) == 0):
+        res_json = place_details_requests(place_id)  
+        detailed_info = parse_place_details_requests(res_json, place_id)
+        insert_info(conn, task, detailed_info[0])
+    return detailed_info[0]
+
 def get_place_info(conn, place_name):
     task = PLACES
     # Create table of task if not exists
@@ -49,7 +59,7 @@ def get_place_info(conn, place_name):
     # places_info = [[place_id, name, address, latitude, longitude]]
     return places_info[0]
 
-def get_nearby_restaurants_info(conn, place_info):
+def get_nearby_restaurants_info(conn, place_info, lower_bound_num=5):
     query_place_id = place_info[ATTRIBUTES[PLACES]["place_id"]]
     lat_place = place_info[ATTRIBUTES[PLACES]["latitude"]]
     lng_place = place_info[ATTRIBUTES[PLACES]["longitude"]]
@@ -57,7 +67,7 @@ def get_nearby_restaurants_info(conn, place_info):
 
     create_table(conn, task)
     restaurants_info = get_processed_db_data(conn, task, "query_place_id", query_place_id)
-    if(len(restaurants_info) < 5):
+    if(len(restaurants_info) < lower_bound_num):
         restaurants_info = []
         res_json = nearby_search_requests(lat_place, lng_place)
         new_infos = parse_nearby_search_requests(res_json, query_place_id)
@@ -74,7 +84,7 @@ def get_nearby_restaurants_info(conn, place_info):
     #                      rating, user_ratings_total, query_place_id, food_style, food_type], [...], ...]
     return restaurants_info
 
-def get_nearby_specified_restaurants_info(conn, place_info, query, food_style=False, food_type=False):
+def get_nearby_specified_restaurants_info(conn, place_info, query, food_style=False, food_type=False, lower_bound_num=5):
     query_place_id = place_info[ATTRIBUTES[PLACES]["place_id"]]
     lat_place = place_info[ATTRIBUTES[PLACES]["latitude"]]
     lng_place = place_info[ATTRIBUTES[PLACES]["longitude"]]
@@ -87,11 +97,11 @@ def get_nearby_specified_restaurants_info(conn, place_info, query, food_style=Fa
         restaurants_info = get_processed_db_data(conn, task, "query_place_id", query_place_id, "food_type", query)
     else:
         restaurants_info = []
-    if(len(restaurants_info) < 5):
+    if(len(restaurants_info) < lower_bound_num):
         restaurants_info = []
         # Request and parse json to lists of restaurants info 
         res_json = text_search_requests(lat_place, lng_place, query)
-        new_infos = parse_text_search_requests(res_json, query_place_id, food_style, food_type)
+        new_infos = parse_text_search_requests(res_json, query_place_id, query, food_style, food_type)
         # For each info, get data from db
         for new_info in new_infos:
             restaurant_info = get_processed_db_data(conn, task, "place_id", new_info[ATTRIBUTES[task]["place_id"]])
