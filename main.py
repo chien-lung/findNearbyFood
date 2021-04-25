@@ -30,13 +30,18 @@ def main(place):
     entered_restaurant_type = "italian"
     top_k_restaurants = get_top_k_restaurants(conn, "food_style", entered_restaurant_type)
     # Search food directly (Request)
-    query = "pub"
-    top_k_restaurants = get_top_k_query_restaurants(conn, place_info, query)
+    # query = "pub"
+    # top_k_restaurants = get_top_k_query_restaurants(conn, place_info, query)
     
     # Choose an interesting restaurant from results
-    for chosen_restaurant in top_k_restaurants:
-        restaurant_detail = get_restaurants_detailed_info(conn, chosen_restaurant[0])
-        print(restaurant_detail)
+    for i, chosen_restaurant in enumerate(top_k_restaurants):
+        place_id = chosen_restaurant[0]
+        restaurant_gmap_detail = get_gmap_restaurant_detail(conn, place_id)
+        phone = restaurant_gmap_detail[2]
+        restaurant_yelp_detail = get_yelp_restaurant_detail(conn, phone)
+        print(i)
+        print(restaurant_gmap_detail)
+        print(restaurant_yelp_detail)
 
 
 

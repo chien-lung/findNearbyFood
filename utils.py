@@ -3,6 +3,7 @@ import sqlite3
 import json
 
 from google_api import *
+from yelp_api import *
 from database import *
 
 ###################
@@ -27,16 +28,6 @@ def get_processed_db_data(conn, task, *args):
     infos = retrieve_db_data(conn, task, keyword_dict)
     infos = process_db_data(infos)
     return infos
-
-def get_restaurants_detailed_info(conn, place_id):
-    task = DETAILS
-    create_table(conn, task)
-    detailed_info = get_processed_db_data(conn, task, "place_id", place_id)
-    if(len(detailed_info) == 0):
-        res_json = place_details_requests(place_id)  
-        detailed_info = parse_place_details_requests(res_json, place_id)
-        insert_info(conn, task, detailed_info[0])
-    return detailed_info[0]
 
 def get_place_info(conn, place_name):
     task = PLACES
@@ -80,8 +71,8 @@ def get_nearby_restaurants_info(conn, place_info, lower_bound_num=5):
             else:
                 restaurants_info.append(restaurant_info[0])
 
-    # restaurants_info = [[place_id, name, addr, latitude, longitude, price_level, 
-    #                      rating, user_ratings_total, query_place_id, food_style, food_type], [...], ...]
+    # restaurants_info = [[place_id, name, addr, latitude, longitude, price_level, rating, 
+    #                      user_ratings_total, query_place_id, food_style, food_type], [...], ...]
     return restaurants_info
 
 def get_nearby_specified_restaurants_info(conn, place_info, query, food_style=False, food_type=False, lower_bound_num=5):
@@ -112,8 +103,8 @@ def get_nearby_specified_restaurants_info(conn, place_info, query, food_style=Fa
                 restaurant_info = update_info(conn, task, new_info, restaurant_info[0])
                 restaurants_info.append(restaurant_info)
 
-    # restaurants_info = [[place_id, name, addr, latitude, longitude, price_level, 
-    #                      rating, user_ratings_total, query_place_id, food_style, food_type], [...], ...]
+    # restaurants_info = [[place_id, name, addr, latitude, longitude, price_level, rating,
+    #                      user_ratings_total, query_place_id, food_style, food_type], [...], ...]
     return restaurants_info
 
 def get_all_specified_restaurants_info(conn, place_info):
@@ -127,6 +118,31 @@ def get_all_specified_restaurants_info(conn, place_info):
         restaurants_info_this = get_nearby_specified_restaurants_info(conn, place_info, query, food_type=True)
         restaurants_info.extend(restaurants_info_this)
     return restaurants_info
+
+def get_gmap_restaurant_detail(conn, place_id):
+    task = GMAP_DETAILS
+    create_table(conn, task)
+    detailed_info = get_processed_db_data(conn, task, "place_id", place_id)
+    if(len(detailed_info) == 0):
+        res_json = place_details_requests(place_id)  
+        detailed_info = parse_place_details_requests(res_json, place_id)
+        insert_info(conn, task, detailed_info[0])
+    # detailed_info = [[place_id, name, phone, open_hours, reviewer1, reviewer1_rating, reviewer1_text,
+    #                   reviewer2, reviewer2_rating, reviewer2_text, reviewer3, reviewer3_rating, reviewer3_text,
+    #                   reviewer4, reviewer4_rating, reviewer4_text, reviewer5, reviewer5_rating, reviewer5_text]]
+    return detailed_info[0]
+
+def get_yelp_restaurant_detail(conn, phone):
+    task = YELP_DETAILS
+    create_table(conn, task)
+    detailed_info = get_processed_db_data(conn, task, "phone", phone)
+    if(len(detailed_info) == 0):
+        detailed_info = yelp_restaurant_search(phone)  
+        insert_info(conn, task, detailed_info[0])
+    # detailed_info = [[id, name, phone, url, price_level, rating, user_rating_total,
+    #                   reviewer1, reviewer1_rating, reviewer1_text, reviewer2, reviewer2_rating, reviewer2_text,
+    #                   reviewer3, reviewer3_rating, reviewer3_text]]
+    return detailed_info[0]
 
 def get_top_k_restaurant_types(conn, style_or_type="food_style", sort_key="rating", k=5):
     results = retrieve_top_k_restaurant_types(conn, style_or_type, sort_key, k)
