@@ -7,7 +7,7 @@ FOOD_STYLES = ["American", "Chinese", "French", "Indian", "Italian", "Japanese",
 FOOD_TYPES = ["Barbecue", "Hamburger", "Pizza", "Seafood", "Steak", "Sushi"]
 
 ################
-#  Requests API#
+# Requests API #
 ################
 
 # Find Place Requests
@@ -132,7 +132,7 @@ def parse_place_details_requests(res_json, place_id):
     info = [place_id, name, phone, open_hours]
 
     reviews = place_detail["reviews"]
-    for i in range(5):
+    for i in range(3):
         if i < len(reviews):
             author_name = reviews[i]["author_name"]
             author_rating = reviews[i]["rating"]

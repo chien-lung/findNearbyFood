@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Place{% endblock %}
+
+{% block body %}
+
+<h1>You search {{place}}.</h1>
+
+<h2>Search the food or the restaurant type you like if it doesn't exist below.</h2>
+<form action="#" method="post">
+    <input type="text" name="query" id="place">
+    <input type="submit" value="Search">
+</form>
+
+<h2>Top-5 food styles are listed below (sorted by rating)</h2>
+<table class="table table-striped table-hover">
+    <tr>
+        {% for class in restaurant_class %}
+        <th>{{class}}</th>
+        {% endfor %}
+    </tr>
+    {% for food_style in food_styles %}
+    <tr>
+        <td>
+            <a href="/restaurant_type/{{food_style[0]}}">
+                <button type="button" class="btn btn-outline-dark btn-sm">{{food_style[0]}}</button>
+            </a>
+            <!-- <a href="/restaurant_type/{{food_style[0]}}">{{food_style[0]}}</a> -->
+        </td>
+        {% for restaurant_info in food_style[1:] %}
+            <td>{{restaurant_info}}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
+
+<h2>Top-5 food types are listed below (sorted by rating)</h2>
+<table class="table table-striped table-hover">
+    <tr>
+        {% for class in restaurant_class %}
+        <th>{{class}}</th>
+        {% endfor %}
+    </tr>
+    {% for food_type in food_types %}
+    <tr>
+        <td>
+            <a href="/restaurant_type/{{food_type[0]}}">
+                <button type="button" class="btn btn-outline-dark btn-sm">{{food_type[0]}}</button>
+            </a>
+        </td>
+        {% for restaurant_info in food_type[1:] %}
+            <td>{{restaurant_info}}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

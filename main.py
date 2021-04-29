@@ -19,7 +19,7 @@ def main(place):
     restaurants_info = get_all_specified_restaurants_info(conn, place_info)
 
     # Retrieve top-5 restaurant types, sorted by rating (average)
-    top_k_restaurant_types = get_top_k_restaurant_types(conn, "food_style")
+    top_k_restaurant_types = get_top_k_restaurant_types(conn, place_info, "food_style")
     for restaurant_type in top_k_restaurant_types:
         print(restaurant_type)
 

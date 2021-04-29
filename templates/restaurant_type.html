@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Restaurant type{% endblock %}
+
+{% block body %}
+<h1>{{restaurant_type}}.</h1>
+<h2>Top-10 restaurants are listed below (sorted by rating)</h2>
+<table class="table table-striped table-hover">
+    <tr>
+        {% for class in restaurant_class %}
+        <th>{{class}}</th>
+        {% endfor %}
+    </tr>
+    {% for restaurant in restaurants %}
+    <tr>
+        <td>
+            <a href="/restaurant/{{restaurant[0]}}">
+                <button type="button" class="btn btn-outline-dark btn-sm">{{restaurant[0]}}</button>
+            </a>
+        </td>
+        {% for restaurant_info in restaurant[1:] %}
+            <td>{{restaurant_info}}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

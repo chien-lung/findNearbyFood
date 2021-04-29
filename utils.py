@@ -10,7 +10,7 @@ from database import *
 # Processing info #
 ###################
 def process_db_data(list_of_data, single_info=False):
-    # [(a1, b1x, ...), (a2, b2, ...), ...] -> [[a1, b1x, ...], [a2, b2, ...], ...]
+    # [(a1, b1, ...), (a2, b2, ...), ...] -> [[a1, b1, ...], [a2, b2, ...], ...]
     return [list(data) for data in list_of_data]
 
 def generate_keyword_dict(*args):
@@ -119,6 +119,9 @@ def get_all_specified_restaurants_info(conn, place_info):
         restaurants_info.extend(restaurants_info_this)
     return restaurants_info
 
+#############################################
+# Get restaurant detailed info for each API #
+#############################################
 def get_gmap_restaurant_detail(conn, place_id):
     task = GMAP_DETAILS
     create_table(conn, task)
@@ -127,9 +130,10 @@ def get_gmap_restaurant_detail(conn, place_id):
         res_json = place_details_requests(place_id)  
         detailed_info = parse_place_details_requests(res_json, place_id)
         insert_info(conn, task, detailed_info[0])
-    # detailed_info = [[place_id, name, phone, open_hours, reviewer1, reviewer1_rating, reviewer1_text,
-    #                   reviewer2, reviewer2_rating, reviewer2_text, reviewer3, reviewer3_rating, reviewer3_text,
-    #                   reviewer4, reviewer4_rating, reviewer4_text, reviewer5, reviewer5_rating, reviewer5_text]]
+    # detailed_info = [[place_id, name, phone, open_hours, 
+    #                   reviewer1, reviewer1_rating, reviewer1_text,
+    #                   reviewer2, reviewer2_rating, reviewer2_text, 
+    #                   reviewer3, reviewer3_rating, reviewer3_text]]
     return detailed_info[0]
 
 def get_yelp_restaurant_detail(conn, phone):
@@ -140,17 +144,23 @@ def get_yelp_restaurant_detail(conn, phone):
         detailed_info = yelp_restaurant_search(phone)  
         insert_info(conn, task, detailed_info[0])
     # detailed_info = [[id, name, phone, url, price_level, rating, user_rating_total,
-    #                   reviewer1, reviewer1_rating, reviewer1_text, reviewer2, reviewer2_rating, reviewer2_text,
+    #                   reviewer1, reviewer1_rating, reviewer1_text,
+    #                   reviewer2, reviewer2_rating, reviewer2_text,
     #                   reviewer3, reviewer3_rating, reviewer3_text]]
     return detailed_info[0]
 
-def get_top_k_restaurant_types(conn, style_or_type="food_style", sort_key="rating", k=5):
-    results = retrieve_top_k_restaurant_types(conn, style_or_type, sort_key, k)
+##########################
+# Get Top-k data from DB #
+##########################
+def get_top_k_restaurant_types(conn, place_info, style_or_type="food_style", sort_key="rating", k=5):
+    query_place_id = place_info[ATTRIBUTES[PLACES]["place_id"]]
+    results = retrieve_top_k_restaurant_types(conn, query_place_id, style_or_type, sort_key, k)
     results = process_db_data(results)
     return results
 
-def get_top_k_restaurants(conn, style_or_type, restaurant_type, sort_key="rating", k=10):
-    results = retrieve_top_k_restaurants(conn, style_or_type, restaurant_type, sort_key, k)
+def get_top_k_restaurants(conn, place_info, style_or_type, restaurant_type, sort_key="rating", k=10):
+    query_place_id = place_info[ATTRIBUTES[PLACES]["place_id"]]
+    results = retrieve_top_k_restaurants(conn, query_place_id, style_or_type, restaurant_type, sort_key, k)
     results = process_db_data(results)
     return results
 
@@ -158,6 +168,6 @@ def get_top_k_query_restaurants(conn, place_info, query, sort_key="rating", k=10
     restaurants_info = get_nearby_specified_restaurants_info(conn, place_info, query)
     place_ids = [restaurant_info[ATTRIBUTES[RESTAURANTS]["place_id"]] for restaurant_info in restaurants_info]
     keyword_dict = generate_keyword_dict("place_id", place_ids)
-    results = retrieve_top_k_restaurants(conn, "", "", sort_key, k, keyword_dict)
+    results = retrieve_top_k_restaurants(conn, "", "", "", sort_key, k, keyword_dict)
     results = process_db_data(results)
     return results

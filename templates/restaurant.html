@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Restaurant{% endblock %}
+
+{% block body %}
+<h1>{{restaurant}}.</h1>
+<h3>Phone: {{phone}}</h3>
+<h3>Address: {{address}}</h3>
+<h3>Open Hours:</h3>
+<div class="container-sm">
+    <ul class="list-group list-group-flush">
+        {% for open_hour in open_hours %}
+        <li class="list-group-item">{{open_hour}}</li>
+        {% endfor %}
+    </ul>
+</div>
+<table class="table table-bordered align-middle">
+    <tr>
+        <th></th>
+        <th class="col-sm-6">Google Map</th>
+        <th class="col-sm-6">Yelp</th>
+    </tr>
+    {% for i in range(3) %}
+    <tr>
+        <td>{{restaurant_class[i]}}</td>
+        <td>{{gmap_info[i]}}</td>
+        <td>{{yelp_info[i]}}</td>
+    </tr>
+    {% endfor %}
+    {% for i in range(3,6) %}
+    <tr>
+        <td>{{restaurant_class[i]}}</td>
+        <td>
+        {% for j in range(3) %}
+            <p>{{gmap_info[i][j]}}</p>
+        {% endfor %}
+        </td>
+        <td>
+        {% for j in range(3) %}
+            <p>{{yelp_info[i][j]}}</p>
+        {% endfor %}
+        </td>
+    </tr>
+    {% endfor %}
+
+</table>
+{% endblock %}
