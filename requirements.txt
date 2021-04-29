@@ -1,0 +1,5 @@
+Flask==1.1.2
+Jinja2==2.11.3
+requests==2.25.1
+yelp==1.0.2
+yelpapi==2.4.0
