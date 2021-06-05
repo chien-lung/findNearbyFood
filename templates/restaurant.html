@@ -3,41 +3,50 @@
 {% block title %}Restaurant{% endblock %}
 
 {% block body %}
-<h1>{{restaurant}}.</h1>
-<h3>Phone: {{phone}}</h3>
-<h3>Address: {{address}}</h3>
+<h1>{{restaurant_name}}.</h1>
+<h3>Phone: {{restaurant_gmap_detail.phone}}</h3>
+<h3>Address: {{restaurant_gmap_detail.address}}</h3>
 <h3>Open Hours:</h3>
 <div class="container-sm">
     <ul class="list-group list-group-flush">
-        {% for open_hour in open_hours %}
-        <li class="list-group-item">{{open_hour}}</li>
+        {% for open_hour in restaurant_gmap_detail.open_hours.split(";") %}
+            <li class="list-group-item">{{open_hour}}</li>
         {% endfor %}
     </ul>
 </div>
+
 <table class="table table-bordered align-middle">
     <tr>
         <th></th>
         <th class="col-sm-6">Google Map</th>
         <th class="col-sm-6">Yelp</th>
     </tr>
+    <tr>
+        <td>Rating</td>
+        <td>{{restaurant_gmap_detail.rating}}</td>
+        <td>{{restaurant_yelp_detail.rating}}</td>
+    </tr>
+    <tr>
+        <td>Rating Number</td>
+        <td>{{restaurant_gmap_detail.ratings_num}}</td>
+        <td>{{restaurant_yelp_detail.ratings_num}}</td>
+    </tr>
+    <tr>
+        <td>Price Level</td>
+        <td>{{restaurant_gmap_detail.price_level}}</td>
+        <td>{{restaurant_yelp_detail.price_level}}</td>
+    </tr>
     {% for i in range(3) %}
     <tr>
-        <td>{{restaurant_class[i]}}</td>
-        <td>{{gmap_info[i]}}</td>
-        <td>{{yelp_info[i]}}</td>
-    </tr>
-    {% endfor %}
-    {% for i in range(3,6) %}
-    <tr>
-        <td>{{restaurant_class[i]}}</td>
+        <td>Review{{i+1}}</td>
         <td>
         {% for j in range(3) %}
-            <p>{{gmap_info[i][j]}}</p>
+            <p>{{restaurant_gmap_detail.reviews[i][j]}}</p>
         {% endfor %}
         </td>
         <td>
         {% for j in range(3) %}
-            <p>{{yelp_info[i][j]}}</p>
+            <p>{{restaurant_yelp_detail.reviews[i][j]}}</p>
         {% endfor %}
         </td>
     </tr>

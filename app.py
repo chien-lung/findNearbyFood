@@ -1,38 +1,42 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for
 
 from utils import *
 
 app = Flask(__name__)
-app.secret_key = "apple"
+# app.secret_key = "apple"
+place_select = None
+restaurants_select = None
+
     
 @app.route('/', methods=['GET', 'POST'])
 def home():
-    session.clear()
+    global place_select, restaurants_select
+    place_select = None
+    restaurants_select = None
     if request.method == 'POST':
         place = request.form['place']
         conn = create_connection()
-        place_info = get_place_info(conn, place)
-        session["place"] = place_info
+        place_object = get_place_info(conn, place)
+        place_select = place_object
         close_connection(conn)
-        place_name = place_info[1]
-        return redirect(url_for("place", place=place_name))
+        return redirect(url_for("place", place=place_object.name))
     else:
         return render_template('index.html')
 
 @app.route('/<place>', methods=['GET', 'POST'])
 def place(place):
+    global place_select
     if request.method == 'POST':
         query = request.form['query']
         return redirect(url_for("restaurant_type", rst_type=query))
     else:
-        if "place" not in session:
+        if place_select is None:
             return redirect(url_for("home"))
         else:
             conn = create_connection()
-            place_info = session["place"]
-            restaurants_info = get_all_specified_restaurants_info(conn, place_info)
-            top_k_food_styles = get_top_k_restaurant_types(conn, place_info, "food_style")
-            top_k_food_types = get_top_k_restaurant_types(conn, place_info, "food_type")
+            restaurants_info = get_all_specified_restaurants_info(conn, place_select)
+            top_k_food_styles = get_top_k_restaurant_types(conn, place_select, "food_style")
+            top_k_food_types = get_top_k_restaurant_types(conn, place_select, "food_type")
             close_connection(conn)
             rst_cls = ["Type" , "Average Rating", "Average Rating Number", "Number"]
             return render_template("place.html", 
@@ -43,60 +47,50 @@ def place(place):
 
 @app.route('/restaurant_type/<rst_type>')
 def restaurant_type(rst_type):
-    if "place" in session:
+    global place_select, restaurants_select
+    if place_select is None:
+        return redirect(url_for("home"))      
+    else:
         conn = create_connection()
-        place_info = session["place"]
+        place_info = place_select
         if rst_type in FOOD_STYLES:
             top_k_restaurants = get_top_k_restaurants(conn, place_info, "food_style", rst_type)
         elif rst_type in FOOD_TYPES:
             top_k_restaurants = get_top_k_restaurants(conn, place_info, "food_type", rst_type)
         else:
             top_k_restaurants = get_top_k_query_restaurants(conn, place_info, rst_type)
-        session["restaurants"] = top_k_restaurants
+        restaurants_select = top_k_restaurants
         close_connection(conn)
-        restaurants = [r[:5] for r in top_k_restaurants]
-    else:
+        rst_cls = ["Name", "Rating", "Rating Number", "Price Level", "Address"]
+        return render_template("restaurant_type.html", 
+                            restaurant_type=rst_type,
+                            restaurant_class=rst_cls, 
+                            restaurants=top_k_restaurants)
+
+@app.route('/restaurant/<restaurant_name>')
+def restaurant(restaurant_name):
+    global place_select, restaurants_select
+    restaurants = restaurants_select
+    if place_select is None:
         return redirect(url_for("home"))
-    rst_cls = ["Name", "Rating", "Rating Number", "Price Level", "Address"]
-    return render_template("restaurant_type.html", 
-                        restaurant_type=rst_type,
-                        restaurant_class=rst_cls, 
-                        restaurants=restaurants)
+    else:
+        for restaurant in restaurants:
+            if restaurant_name == restaurant.name:
+                place_id = restaurant.place_id
+                break
+        conn = create_connection()
+        restaurant_gmap_detail = get_gmap_restaurant_detail(conn, place_id)
+        restaurant_gmap_detail.rating = restaurant.rating
+        restaurant_gmap_detail.ratings_num = restaurant.ratings_num
+        restaurant_gmap_detail.price_level = restaurant.price_level
+        restaurant_yelp_detail = get_yelp_restaurant_detail(conn, restaurant_gmap_detail.phone)
+        close_connection(conn)
 
-@app.route('/restaurant/<rst>')
-def restaurant(rst):
-    restaurants = session["restaurants"]
-    for rst_info in restaurants:
-        if rst in rst_info:
-            place_id = rst_info[-1]
-            break
-    conn = create_connection()
-    restaurant_gmap_detail = get_gmap_restaurant_detail(conn, place_id)
-    phone = restaurant_gmap_detail[2]
-    restaurant_yelp_detail = get_yelp_restaurant_detail(conn, phone)
-    close_connection(conn)
-    addr = rst_info[4]
-    open_hours = restaurant_gmap_detail[3].split(";")
-
-    gmap_info = [rst_info[1], rst_info[2], rst_info[3]]
-        
-    gmap_reviews = [restaurant_gmap_detail[-9:][x: x+3] for x in range(0, len(restaurant_gmap_detail[-9:]), 3)]
-    gmap_info.extend(gmap_reviews)
-
-    yelp_info =[restaurant_yelp_detail[5], restaurant_yelp_detail[6], restaurant_yelp_detail[4]]
-    yelp_reviews = [restaurant_yelp_detail[-9:][x: x+3] for x in range(0, len(restaurant_yelp_detail[-9:]), 3)]
-    yelp_info.extend(yelp_reviews)
-
-    rst_cls = ["Rating", "Rating Number", "Price Level", "Review1", "Review2", "Review3"]
-    return render_template("restaurant.html", 
-                           restaurant=rst,
-                           phone = phone,
-                           address = addr,
-                           open_hours=open_hours,
-                           restaurant_class=rst_cls,
-                           gmap_info=gmap_info,
-                           yelp_info=yelp_info, 
-                           )
+        return render_template("restaurant.html", 
+                            restaurant_name=restaurant_name,
+                            restaurant_gmap_detail=restaurant_gmap_detail,
+                            restaurant_yelp_detail=restaurant_yelp_detail
+                            )
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -258,7 +258,7 @@ def retrieve_top_k_restaurants(conn, query_place_id, style_or_type, restaurant_t
         condition_str = generate_condition_str(keyword_dict)
     
     query = f'''
-        SELECT name, rating, user_ratings_total, price_level, address, place_id FROM restaurants
+        SELECT * FROM restaurants
         WHERE {condition_str}
         ORDER BY {sort_key}
         DESC

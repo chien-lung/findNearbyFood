@@ -5,6 +5,7 @@ import json
 from google_api import *
 from yelp_api import *
 from database import *
+from objects import *
 
 ###################
 # Processing info #
@@ -19,6 +20,7 @@ def generate_keyword_dict(*args):
     for i in range(len(args)//2):
         keyword_dict[args[2*i]] = args[2*i+1]
     return keyword_dict
+
 
 ##############################
 # Get info by DB or requests #
@@ -48,12 +50,13 @@ def get_place_info(conn, place_name):
             places_info = new_infos
 
     # places_info = [[place_id, name, address, latitude, longitude]]
-    return places_info[0]
+    place_info = places_info[0]
+    return get_place_object(place_info)
 
 def get_nearby_restaurants_info(conn, place_info, lower_bound_num=5):
-    query_place_id = place_info[ATTRIBUTES[PLACES]["place_id"]]
-    lat_place = place_info[ATTRIBUTES[PLACES]["latitude"]]
-    lng_place = place_info[ATTRIBUTES[PLACES]["longitude"]]
+    query_place_id = place_info.place_id
+    lat_place = place_info.latitude
+    lng_place = place_info.longitude
     task = RESTAURANTS
 
     create_table(conn, task)
@@ -73,12 +76,12 @@ def get_nearby_restaurants_info(conn, place_info, lower_bound_num=5):
 
     # restaurants_info = [[place_id, name, addr, latitude, longitude, price_level, rating, 
     #                      user_ratings_total, query_place_id, food_style, food_type], [...], ...]
-    return restaurants_info
+    return [get_restaurant_object(info) for info in restaurants_info]
 
 def get_nearby_specified_restaurants_info(conn, place_info, query, food_style=False, food_type=False, lower_bound_num=5):
-    query_place_id = place_info[ATTRIBUTES[PLACES]["place_id"]]
-    lat_place = place_info[ATTRIBUTES[PLACES]["latitude"]]
-    lng_place = place_info[ATTRIBUTES[PLACES]["longitude"]]
+    query_place_id = place_info.place_id
+    lat_place = place_info.latitude
+    lng_place = place_info.longitude
     task = RESTAURANTS
 
     create_table(conn, task)
@@ -105,7 +108,7 @@ def get_nearby_specified_restaurants_info(conn, place_info, query, food_style=Fa
 
     # restaurants_info = [[place_id, name, addr, latitude, longitude, price_level, rating,
     #                      user_ratings_total, query_place_id, food_style, food_type], [...], ...]
-    return restaurants_info
+    return [get_restaurant_object(info) for info in restaurants_info]
 
 def get_all_specified_restaurants_info(conn, place_info):
     restaurants_info = []
@@ -130,11 +133,13 @@ def get_gmap_restaurant_detail(conn, place_id):
         res_json = place_details_requests(place_id)  
         detailed_info = parse_place_details_requests(res_json, place_id)
         insert_info(conn, task, detailed_info[0])
+
     # detailed_info = [[place_id, name, phone, open_hours, 
     #                   reviewer1, reviewer1_rating, reviewer1_text,
     #                   reviewer2, reviewer2_rating, reviewer2_text, 
     #                   reviewer3, reviewer3_rating, reviewer3_text]]
-    return detailed_info[0]
+    detailed_info = detailed_info[0]
+    return get_gmap_detail_object(detailed_info)
 
 def get_yelp_restaurant_detail(conn, phone):
     task = YELP_DETAILS
@@ -143,31 +148,34 @@ def get_yelp_restaurant_detail(conn, phone):
     if(len(detailed_info) == 0):
         detailed_info = yelp_restaurant_search(phone)  
         insert_info(conn, task, detailed_info[0])
+        
     # detailed_info = [[id, name, phone, url, price_level, rating, user_rating_total,
     #                   reviewer1, reviewer1_rating, reviewer1_text,
     #                   reviewer2, reviewer2_rating, reviewer2_text,
     #                   reviewer3, reviewer3_rating, reviewer3_text]]
-    return detailed_info[0]
+    detailed_info = detailed_info[0]
+    return get_yelp_detail_object(detailed_info)
+    
 
 ##########################
 # Get Top-k data from DB #
 ##########################
 def get_top_k_restaurant_types(conn, place_info, style_or_type="food_style", sort_key="rating", k=5):
-    query_place_id = place_info[ATTRIBUTES[PLACES]["place_id"]]
+    query_place_id = place_info.place_id
     results = retrieve_top_k_restaurant_types(conn, query_place_id, style_or_type, sort_key, k)
     results = process_db_data(results)
-    return results
+    return [get_restaurant_type_object(result) for result in results]
 
 def get_top_k_restaurants(conn, place_info, style_or_type, restaurant_type, sort_key="rating", k=10):
-    query_place_id = place_info[ATTRIBUTES[PLACES]["place_id"]]
+    query_place_id = place_info.place_id
     results = retrieve_top_k_restaurants(conn, query_place_id, style_or_type, restaurant_type, sort_key, k)
     results = process_db_data(results)
-    return results
+    return [get_restaurant_object(result) for result in results]
 
 def get_top_k_query_restaurants(conn, place_info, query, sort_key="rating", k=10):
     restaurants_info = get_nearby_specified_restaurants_info(conn, place_info, query)
-    place_ids = [restaurant_info[ATTRIBUTES[RESTAURANTS]["place_id"]] for restaurant_info in restaurants_info]
+    place_ids = [restaurant_info.place_id for restaurant_info in restaurants_info]
     keyword_dict = generate_keyword_dict("place_id", place_ids)
     results = retrieve_top_k_restaurants(conn, "", "", "", sort_key, k, keyword_dict)
     results = process_db_data(results)
-    return results
+    return [get_restaurant_object(result) for result in results]

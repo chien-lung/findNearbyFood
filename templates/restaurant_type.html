@@ -14,13 +14,14 @@
     {% for restaurant in restaurants %}
     <tr>
         <td>
-            <a href="/restaurant/{{restaurant[0]}}">
-                <button type="button" class="btn btn-outline-dark btn-sm">{{restaurant[0]}}</button>
+            <a href="/restaurant/{{restaurant.name}}">
+                <button type="button" class="btn btn-outline-dark btn-sm">{{restaurant.name}}</button>
             </a>
         </td>
-        {% for restaurant_info in restaurant[1:] %}
-            <td>{{restaurant_info}}</td>
-        {% endfor %}
+        <td>{{restaurant.rating}}</td>
+        <td>{{restaurant.ratings_num}}</td>
+        <td>{{restaurant.price_level}}</td>
+        <td>{{restaurant.address}}</td>
     </tr>
     {% endfor %}
 </table>
